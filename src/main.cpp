@@ -1,6 +1,8 @@
 
 // ref: http://yann.lecun.com/exdb/mnist/
 
+#include <cassert>
+#include "math.h"
 #include "genann.h"
 
 #include "images_file.h"
@@ -18,15 +20,15 @@ static const int TRAINING_LABELS_MAGIC = 2049;
 static const int TRAINING_LABELS_COUNT = 60000;
 
 static const std::string TEST_IMAGES_FILENAME = "t10k-images.idx3-ubyte";
-static const int TEST_IMAGES_MAGIC = 2051;
-static const int TEST_IMAGES_COUNT = 10000;
+// static const int TEST_IMAGES_MAGIC = 2051;
+// static const int TEST_IMAGES_COUNT = 10000;
 
 int
 main()
 {
 
-  double **training_data_input = nullptr, **training_data_output = nullptr,
-         **test_data_input = nullptr;
+  double **training_data_input = nullptr, **training_data_output = nullptr/*,
+         **test_data_input = nullptr*/;
 
   // training images
   {
@@ -45,7 +47,9 @@ main()
     for (int r = 0; r < numRows; r++) {
       double* row = (double*)malloc(numCols * sizeof(double));
       for (int c = 0; c < numCols; c++) {
-        row[c] = file.images[r]->pixels[c];
+        double value = file.images[r]->pixels[c];
+        row[c] = value > 0 ? (value / 255) : 0;
+        // std::cout << row[c] << '\n';
       }
       training_data_input[r] = row;
     }
@@ -79,7 +83,7 @@ main()
   assert(training_data_output);
 
   // inputs, hidden layer, neurons per layer, outputs
-  genann* ann = genann_init(2, 1, 3, 2);
+  genann* ann = genann_init(28*28, 1, 3, 1);
 
   {
     int i, j;
@@ -91,38 +95,39 @@ main()
   }
 
   // test images
-  {
-    auto file = ImagesFile("data/" + TEST_IMAGES_FILENAME);
-    if (!file.load()) {
-      panic("could not load images file: " + file.getError());
-    }
-    assert(file.getMagic() == TEST_IMAGES_MAGIC);
-    assert(file.images.size() == TEST_IMAGES_COUNT);
-    file.print();
+  // {
+  //   auto file = ImagesFile("data/" + TEST_IMAGES_FILENAME);
+  //   if (!file.load()) {
+  //     panic("could not load images file: " + file.getError());
+  //   }
+  //   assert(file.getMagic() == TEST_IMAGES_MAGIC);
+  //   assert(file.images.size() == TEST_IMAGES_COUNT);
+  //   file.print();
 
-    int numRows = file.images.size();
-    int numCols = file.images[0]->pixels.size();
+  //   int numRows = file.images.size();
+  //   int numCols = file.images[0]->pixels.size();
 
-    test_data_input = (double**)malloc(numRows * sizeof(double*));
-    for (int r = 0; r < numRows; r++) {
-      double* row = (double*)malloc(numCols * sizeof(double));
-      for (int c = 0; c < numCols; c++) {
-        row[c] = file.images[r]->pixels[c];
-      }
-      test_data_input[r] = row;
-    }
-  }
+  //   test_data_input = (double**)malloc(numRows * sizeof(double*));
+  //   for (int r = 0; r < numRows; r++) {
+  //     double* row = (double*)malloc(numCols * sizeof(double));
+  //     for (int c = 0; c < numCols; c++) {
+  //       double value = file.images[r]->pixels[c];
+  //       row[c] = value > 0 ? (value / 255) : 0;
+  //     }
+  //     test_data_input[r] = row;
+  //   }
+  // }
 
-  assert(test_data_input);
+  // assert(test_data_input);
 
-  {
-    int i;
-    for (i = 0; i < TEST_IMAGES_COUNT; i++) {
-      double const* prediction = genann_run(ann, test_data_input[i]);
-      printf(
-        "Output for data point is: %f, %f\n", prediction[0], prediction[1]);
-    }
-  }
+  // {
+  //   int i;
+  //   for (i = 0; i < TEST_IMAGES_COUNT; i++) {
+  //     double const* prediction = genann_run(ann, test_data_input[i]);
+  //     printf(
+  //       "Output for data point is: %f, %f\n", prediction[0], prediction[1]);
+  //   }
+  // }
 
   genann_free(ann);
 

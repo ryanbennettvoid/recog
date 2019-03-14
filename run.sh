@@ -1,4 +1,4 @@
 #!/bin/bash
 
-cd ./bin && make && \
-cd .. && ./bin/recog
+cd ./build && make && \
+cd .. && ./build/recog

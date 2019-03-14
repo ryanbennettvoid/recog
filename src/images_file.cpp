@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cassert>
 
 #include "image.h"
 #include "images_file.h"
