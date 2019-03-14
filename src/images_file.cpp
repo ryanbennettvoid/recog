@@ -62,8 +62,8 @@ ImagesFile::load()
           this->images.push_back(currentImage);
         }
         currentImage = new Image();
-        currentImage->pixels.push_back(uc);
       }
+      currentImage->pixels.push_back(uc);
       pixelPos++;
     }
     pos++;
