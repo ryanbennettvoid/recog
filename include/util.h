@@ -4,10 +4,6 @@
 #include <iostream>
 
 void
-panic(std::string message)
-{
-  std::cout << message << "\n";
-  exit(1);
-}
+panic(std::string message);
 
 #endif

@@ -9,6 +9,10 @@
 #include "image.h"
 #include "imagesfile.h"
 
+ImagesFile::ImagesFile(std::string filename)
+  : File(filename)
+{}
+
 ImagesFile::~ImagesFile()
 {
   for (Image* image : this->images) {
@@ -16,24 +20,12 @@ ImagesFile::~ImagesFile()
   }
 }
 
-int
-ImagesFile::getMagic() const
-{
-  return this->magic;
-}
-
-std::string
-ImagesFile::getError() const
-{
-  return this->error;
-}
-
 bool
-ImagesFile::load(std::string filename)
+ImagesFile::load()
 {
-  auto file = std::ifstream(filename, std::ios::binary);
+  auto file = std::ifstream(this->filename, std::ios::binary);
   if (!file.good()) {
-    this->error = "could not open file: " + filename;
+    this->error = "could not open file: " + this->filename;
     return false;
   }
 

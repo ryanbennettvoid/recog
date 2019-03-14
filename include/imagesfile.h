@@ -4,23 +4,21 @@
 #include <string>
 #include <vector>
 
+#include "file.h"
 #include "image.h"
 
-class ImagesFile
+class ImagesFile : public File
 {
 private:
-  int magic;
-  std::string error;
-  std::string filename;
   std::vector<Image*> images;
 
 public:
+  ImagesFile(std::string filename);
   ~ImagesFile();
-  int getMagic() const;
-  std::string getError() const;
-  bool load(std::string filename);
-  void addImage(Image* image);
+
+  bool load();
   void print();
+  void addImage(Image* image);
 };
 
 #endif

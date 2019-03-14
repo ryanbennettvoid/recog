@@ -11,9 +11,8 @@ main(int argc, char** argv)
   }
 
   auto filename = std::string(argv[1]);
-
-  ImagesFile file;
-  if (!file.load(filename)) {
+  auto file = ImagesFile(filename);
+  if (!file.load()) {
     panic("could not load images file: " + file.getError());
   }
 
