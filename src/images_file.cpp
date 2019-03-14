@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "image.h"
-#include "imagesfile.h"
+#include "images_file.h"
 
 ImagesFile::ImagesFile(std::string filename)
   : File(filename)
@@ -47,8 +47,6 @@ ImagesFile::load()
       numColumns += (uc << ((3 - pos) * 8));
     } else {
       if (pos == 16) {
-        assert(this->magic == 2051);
-        assert(numImages == 10000);
         assert(numRows == 28);
         assert(numColumns == 28);
         numPixels = numRows * numColumns;
@@ -73,7 +71,9 @@ ImagesFile::load()
     pos++;
   }
 
+  // last image
   assert(!currentImage->pixels.empty());
+  this->images.push_back(currentImage);
 
   file.close();
   return true;

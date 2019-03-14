@@ -1,24 +1,35 @@
 
-#include "imagesfile.h"
+#include "images_file.h"
 #include "util.h"
 
+static const std::string TRAINING_IMAGES_FILENAME = "train-images.idx3-ubyte";
+static const std::string TEST_IMAGES_FILENAME = "t10k-images.idx3-ubyte";
+
 int
-main(int argc, char** argv)
+main()
 {
 
-  if (argc != 2) {
-    panic("invalid number of arguments");
+  // training images
+  {
+    auto file = ImagesFile("data/" + TRAINING_IMAGES_FILENAME);
+    if (!file.load()) {
+      panic("could not load images file: " + file.getError());
+    }
+    assert(file.getMagic() != 0);
+    assert(file.images.size() == 60000);
+    file.print();
   }
 
-  auto filename = std::string(argv[1]);
-  auto file = ImagesFile(filename);
-  if (!file.load()) {
-    panic("could not load images file: " + file.getError());
+  // test images
+  {
+    auto file = ImagesFile("data/" + TEST_IMAGES_FILENAME);
+    if (!file.load()) {
+      panic("could not load images file: " + file.getError());
+    }
+    assert(file.getMagic() != 0);
+    assert(file.images.size() == 10000);
+    file.print();
   }
-
-  assert(file.getMagic() != 0);
-
-  file.print();
 
   return 0;
 }

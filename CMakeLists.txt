@@ -8,7 +8,7 @@ add_executable(
   recog 
   ./src/main.cpp
   ./src/util.cpp
-  ./src/imagesfile.cpp
+  ./src/images_file.cpp
   ./src/image.cpp
   ./src/file.cpp
 )

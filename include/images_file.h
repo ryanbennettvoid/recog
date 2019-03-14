@@ -1,5 +1,5 @@
-#ifndef IMAGESFILE_H
-#define IMAGESFILE_H
+#ifndef IMAGES_FILE_H
+#define IMAGES_FILE_H
 
 #include <string>
 #include <vector>
@@ -9,16 +9,15 @@
 
 class ImagesFile : public File
 {
-private:
-  std::vector<Image*> images;
-
 public:
   ImagesFile(std::string filename);
   ~ImagesFile();
 
   bool load();
   void print();
+
   void addImage(Image* image);
+  std::vector<Image*> images;
 };
 
 #endif
