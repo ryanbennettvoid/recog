@@ -1,6 +1,4 @@
 
-// ref: http://yann.lecun.com/exdb/mnist/
-
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -88,8 +86,10 @@ ImagesFile::addImage(Image* image)
 void
 ImagesFile::print()
 {
+  std::cout << "filename: " << this->filename << '\n';
   std::cout << "magic: " << this->magic << '\n';
   std::cout << "error: " << (this->error != "" ? this->error : "<none>")
             << '\n';
   std::cout << "images: " << this->images.size() << '\n';
+  std::cout << '\n';
 }

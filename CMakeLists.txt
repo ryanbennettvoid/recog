@@ -9,6 +9,7 @@ add_executable(
   ./src/main.cpp
   ./src/util.cpp
   ./src/images_file.cpp
+  ./src/labels_file.cpp
   ./src/image.cpp
   ./src/file.cpp
 )

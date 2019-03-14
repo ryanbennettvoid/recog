@@ -35,7 +35,9 @@ File::load()
 void
 File::print()
 {
+  std::cout << "filename: " << this->filename << '\n';
   std::cout << "magic: " << this->magic << '\n';
   std::cout << "error: " << (this->error != "" ? this->error : "<none>")
             << '\n';
+  std::cout << '\n';
 }
