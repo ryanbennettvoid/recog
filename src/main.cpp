@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cassert>
 #include <math.h>
+#include <stdio.h>
 #include <thread>
 #include <time.h>
 
@@ -31,10 +32,12 @@ static const int TEST_LABELS_COUNT = 10000;
 static const int THREADS = 8;
 
 const static int INPUTS = 28 * 28;
-const static int HIDDEN_LAYERS = 2;
+const static int HIDDEN_LAYERS = 3;
 const static int NEURONS = INPUTS / 7;
 const static int OUTPUTS = 10;
 const static double LEARNING_RATE = 0.1;
+
+const static std::string OUTPUT_FILE = "out.nn";
 
 int main() {
 
@@ -151,9 +154,21 @@ int main() {
   assert(test_data_output);
 
   // inputs, hidden layers, neurons per layer, outputs
-  genann *ann = genann_init(INPUTS, HIDDEN_LAYERS, NEURONS, OUTPUTS);
+  
+  genann *ann = nullptr;
+  int lastNumGuessesCorrect = 0;
+  int numIterations = 0;
 
 train:
+
+  if (!ann) {
+    FILE* fileToLoad = fopen(OUTPUT_FILE.c_str(), "r");
+    if (fileToLoad && (ann = genann_read(fileToLoad))) {
+      fclose(fileToLoad);
+    } else {
+      ann = genann_init(INPUTS, HIDDEN_LAYERS, NEURONS, OUTPUTS);
+    }
+  }
 
   srand(time(0));
 
@@ -197,37 +212,54 @@ train:
   }
 
   // predict
-  {
-    double guess, guessWeight, actual;
-    int i, numGuessesCorrect;
-    for (i = 0; i < TEST_IMAGES_COUNT; i++) {
-      double const *prediction = genann_run(ann, test_data_input[i]);
+  double guess, guessWeight, actual;
+  int i, numGuessesCorrect = 0;
+  for (i = 0; i < TEST_IMAGES_COUNT; i++) {
+    double const *prediction = genann_run(ann, test_data_input[i]);
 
-      auto guessVec = std::vector<double>(prediction, prediction + OUTPUTS);
-      auto actualVec = std::vector<double>(test_data_output[i], test_data_output[i] + OUTPUTS);
+    auto guessVec = std::vector<double>(prediction, prediction + OUTPUTS);
+    auto actualVec = std::vector<double>(test_data_output[i], test_data_output[i] + OUTPUTS);
 
-      auto maxGuessIterator = std::max_element(guessVec.begin(), guessVec.end());
-      guessWeight = *maxGuessIterator;
-      guess = std::distance(guessVec.begin(), maxGuessIterator);
+    auto maxGuessIterator = std::max_element(guessVec.begin(), guessVec.end());
+    guessWeight = *maxGuessIterator;
+    guess = std::distance(guessVec.begin(), maxGuessIterator);
 
-      auto maxActualIterator = std::max_element(actualVec.begin(), actualVec.end());
-      actual = std::distance(actualVec.begin(), maxActualIterator);
+    auto maxActualIterator = std::max_element(actualVec.begin(), actualVec.end());
+    actual = std::distance(actualVec.begin(), maxActualIterator);
 
-      bool correct = (guess == actual);
-      if (correct) {
-        numGuessesCorrect++;
-      }
-
-      if (i % 500 == 0 || i == TEST_IMAGES_COUNT-1) {
-        printf("%8d: %d (%f) -> %d (%d/%d correct)\n", i, (int)guess, guessWeight, (int)actual, 
-          (int)numGuessesCorrect, (int)TEST_IMAGES_COUNT);
-      }
+    bool correct = (guess == actual);
+    if (correct) {
+      numGuessesCorrect++;
     }
-    putchar('\n');
-    numGuessesCorrect = 0;
+
+    if (i % 500 == 0 || i == TEST_IMAGES_COUNT-1) {
+      printf("%8d: %d (%f) -> %d (%d/%d correct)\n", i, (int)guess, guessWeight, (int)actual, 
+        (int)numGuessesCorrect, (int)TEST_IMAGES_COUNT);
+    }
   }
 
-  goto train;
+  putchar('\n');
+
+  if (numGuessesCorrect > lastNumGuessesCorrect) {
+    FILE* fileToSave = fopen(OUTPUT_FILE.c_str(), "w+");
+    if (!fileToSave) {
+      panic("could not create file to save\n");
+    }
+    std::cout << "network improved, writing to file.. ";
+    genann_write(ann, fileToSave);
+    std::cout << "done\n";
+  } else {
+    std::cout << "skipping file write, previous network was better\n";
+  }
+  
+  lastNumGuessesCorrect = numGuessesCorrect;
+
+  numIterations++;
+
+  if (lastNumGuessesCorrect < 9400) {
+    std::cout << "num iterations: " << numIterations << '\n';
+    goto train;
+  }
 
   genann_free(ann);
 
