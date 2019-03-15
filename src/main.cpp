@@ -12,8 +12,6 @@
 #include "labels_file.h"
 #include "util.h"
 
-static const int TRAINING_ITERATIONS = 1;
-
 static const std::string TRAINING_IMAGES_FILENAME = "train-images.idx3-ubyte";
 static const int TRAINING_IMAGES_MAGIC = 2051;
 static const int TRAINING_IMAGES_COUNT = 60000;
@@ -34,8 +32,9 @@ static const int THREADS = 8;
 
 const static int INPUTS = 28 * 28;
 const static int HIDDEN_LAYERS = 1;
-const static int NEURONS = INPUTS / 3;
+const static int NEURONS = INPUTS / 7;
 const static int OUTPUTS = 10;
+const static double LEARNING_RATE = 0.1;
 
 int main() {
 
@@ -184,13 +183,10 @@ train:
           int end = start + numImages;
           // std::cout << "thread: " << t << '\n';
           // std::cout << "start: " << start << '\n' << '\n';
-          int i, j;
-          for (i = 0; i < TRAINING_ITERATIONS; ++i) {
-            for (j = start; j < end; ++j) {
-              genann_train(ann, training_data_input[j], training_data_output[j],
-                           0.01);
+          int j;
+          for (j = start; j < end; ++j) {
+              genann_train(ann, training_data_input[j], training_data_output[j], LEARNING_RATE);
             }
-          }
           // std::cout << "thread " << t << " done\n\n";
         },
         t));
