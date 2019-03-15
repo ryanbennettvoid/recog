@@ -1,13 +1,14 @@
 
 // ref: http://yann.lecun.com/exdb/mnist/
 
-#include "genann.h"
 #include <algorithm>
 #include <cassert>
 #include <math.h>
 #include <stdio.h>
 #include <thread>
 #include <time.h>
+
+#include "genann.h"
 
 #include "images_file.h"
 #include "labels_file.h"
@@ -257,7 +258,7 @@ train:
   numIterations++;
 
   if (lastNumGuessesCorrect < 9400) {
-    std::cout << "num iterations: " << numIterations << '\n';
+    std::cout << "num iterations: " << numIterations << "\n\n";
     goto train;
   }
 

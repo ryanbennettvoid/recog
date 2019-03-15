@@ -164,10 +164,9 @@ genann *genann_read(FILE *in) {
     for (i = 0; i < ann->total_weights; ++i) {
         errno = 0;
         rc = fscanf(in, " %le", ann->weight + i);
-        if (rc < 1 || errno != 0) {
+        if ((rc != EOF && rc != 1) || errno != 0) {
             perror("fscanf");
             genann_free(ann);
-
             return NULL;
         }
     }
