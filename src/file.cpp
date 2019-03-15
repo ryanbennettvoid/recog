@@ -8,7 +8,7 @@
 #include "util.h"
 
 File::File(std::string filename)
-  : filename(filename)
+  : magic(0), filename(filename)
 {}
 
 File::~File() {}
