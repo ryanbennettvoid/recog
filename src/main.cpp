@@ -1,11 +1,12 @@
 
 // ref: http://yann.lecun.com/exdb/mnist/
 
-#include <cassert>
-#include <thread>
-#include <math.h>
-#include <time.h>
 #include "genann.h"
+#include <algorithm>
+#include <cassert>
+#include <math.h>
+#include <thread>
+#include <time.h>
 
 #include "images_file.h"
 #include "labels_file.h"
@@ -20,7 +21,7 @@ static const int TRAINING_IMAGES_COUNT = 60000;
 static const std::string TRAINING_LABELS_FILENAME = "train-labels.idx1-ubyte";
 static const int TRAINING_LABELS_MAGIC = 2049;
 static const int TRAINING_LABELS_COUNT = 60000;
-  
+
 static const std::string TEST_IMAGES_FILENAME = "t10k-images.idx3-ubyte";
 static const int TEST_IMAGES_MAGIC = 2051;
 static const int TEST_IMAGES_COUNT = 10000;
@@ -31,16 +32,17 @@ static const int TEST_LABELS_COUNT = 10000;
 
 static const int THREADS = 8;
 
-int
-main()
-{
+const static int INPUTS = 28 * 28;
+const static int HIDDEN_LAYERS = 1;
+const static int NEURONS = INPUTS / 3;
+const static int OUTPUTS = 10;
 
-  srand(time(0));
+int main() {
 
-  double **training_data_input = nullptr;   // training images
-  double **training_data_output = nullptr;  // training labels
-  double **test_data_input = nullptr;       // test images
-  double **test_data_output = nullptr;      // test labels
+  double **training_data_input = nullptr;  // training images
+  double **training_data_output = nullptr; // training labels
+  double **test_data_input = nullptr;      // test images
+  double **test_data_output = nullptr;     // test labels
 
   // outputs:
   // [1, 0, 0, 0, 0, 0, 0, 0, 0, 0] == 0
@@ -61,13 +63,12 @@ main()
     int numRows = file.images.size();
     int numCols = file.images[0]->pixels.size();
 
-    training_data_input = (double**)malloc(numRows * sizeof(double*));
+    training_data_input = (double **)malloc(numRows * sizeof(double *));
     for (int r = 0; r < numRows; r++) {
-      double* row = (double*)malloc(numCols * sizeof(double));
+      double *row = (double *)malloc(numCols * sizeof(double));
       for (int c = 0; c < numCols; c++) {
         double value = file.images[r]->pixels[c];
         row[c] = value > 0 ? (value / 255) : 0;
-        // std::cout << row[c] << '\n';
       }
       training_data_input[r] = row;
     }
@@ -85,11 +86,11 @@ main()
 
     int numLabels = file.labels.size();
 
-    training_data_output = (double**)malloc(numLabels * sizeof(double*));
+    training_data_output = (double **)malloc(numLabels * sizeof(double *));
     for (int i = 0; i < numLabels; i++) {
       int index = file.labels[i];
-      double* values = (double*)malloc(sizeof(double) * 10);
-      for (int idx = 0; idx < 10; idx++) {
+      double *values = (double *)malloc(sizeof(double) * OUTPUTS);
+      for (int idx = 0; idx < OUTPUTS; idx++) {
         values[idx] = 0;
       }
       values[index] = 1;
@@ -97,7 +98,7 @@ main()
     }
   }
 
-    // test images
+  // test images
   {
     auto file = ImagesFile("data/" + TEST_IMAGES_FILENAME);
     if (!file.load()) {
@@ -110,9 +111,9 @@ main()
     int numRows = file.images.size();
     int numCols = file.images[0]->pixels.size();
 
-    test_data_input = (double**)malloc(numRows * sizeof(double*));
+    test_data_input = (double **)malloc(numRows * sizeof(double *));
     for (int r = 0; r < numRows; r++) {
-      double* row = (double*)malloc(numCols * sizeof(double));
+      double *row = (double *)malloc(numCols * sizeof(double));
       for (int c = 0; c < numCols; c++) {
         double value = file.images[r]->pixels[c];
         row[c] = value > 0 ? (value / 255) : 0;
@@ -121,7 +122,7 @@ main()
     }
   }
 
-    // test labels
+  // test labels
   {
     auto file = LabelsFile("data/" + TEST_LABELS_FILENAME);
     if (!file.load()) {
@@ -133,11 +134,11 @@ main()
 
     int numLabels = file.labels.size();
 
-    test_data_output = (double**)malloc(numLabels * sizeof(double*));
+    test_data_output = (double **)malloc(numLabels * sizeof(double *));
     for (int i = 0; i < numLabels; i++) {
       int index = file.labels[i];
-      double* values = (double*)malloc(sizeof(double) * 10);
-      for (int idx = 0; idx < 10; idx++) {
+      double *values = (double *)malloc(sizeof(double) * OUTPUTS);
+      for (int idx = 0; idx < OUTPUTS; idx++) {
         values[idx] = 0;
       }
       values[index] = 1;
@@ -150,47 +151,84 @@ main()
   assert(test_data_input);
   assert(test_data_output);
 
-  const static int INPUTS = 28*28;
-  const static int HIDDEN_LAYERS = 1;
-  const static int NEURONS = INPUTS/3;
-  const static int OUTPUTS = 10;
-
   // inputs, hidden layers, neurons per layer, outputs
-  genann* ann = genann_init(INPUTS, HIDDEN_LAYERS, NEURONS, OUTPUTS);
+  genann *ann = genann_init(INPUTS, HIDDEN_LAYERS, NEURONS, OUTPUTS);
 
 train:
+
+  srand(time(0));
+
+  // shuffle samples
+  for (int i = TRAINING_IMAGES_COUNT-1; i > 0; i-- ) {
+    int j = rand() % (i+1);
+    {
+      double* tmp = training_data_input[i];
+      training_data_input[j] = training_data_input[i];
+      training_data_input[i] = tmp;
+    }
+    {
+      double* tmp = training_data_output[i];
+      training_data_output[j] = training_data_output[i];
+      training_data_output[i] = tmp;
+    }
+  }
+
+  // train
   {
     std::vector<std::thread> threads;
     for (int t = 0; t < THREADS; t++) {
-      threads.push_back(std::thread([=](int t){
-        int numImages = (TRAINING_IMAGES_COUNT / THREADS);
-        int start = numImages * t;
-        int end = start + numImages;
-        std::cout << "thread: " << t << '\n';
-        std::cout << "start: " << start << '\n' << '\n';
-        int i, j;
-        for (i = 0; i < TRAINING_ITERATIONS; ++i) {
-          for (j = start; j < end; ++j) {
-            genann_train(ann, training_data_input[j], training_data_output[j], 0.01);
+      threads.push_back(std::thread(
+        [=](int t) {
+          int numImages = (TRAINING_IMAGES_COUNT / THREADS);
+          int start = numImages * t;
+          int end = start + numImages;
+          // std::cout << "thread: " << t << '\n';
+          // std::cout << "start: " << start << '\n' << '\n';
+          int i, j;
+          for (i = 0; i < TRAINING_ITERATIONS; ++i) {
+            for (j = start; j < end; ++j) {
+              genann_train(ann, training_data_input[j], training_data_output[j],
+                           0.01);
+            }
           }
-        }
-        std::cout << "thread " << t << " done\n\n";
-      }, t));
+          // std::cout << "thread " << t << " done\n\n";
+        },
+        t));
     }
-    for (auto& thread : threads) {
+    for (auto &thread : threads) {
       thread.join();
     }
   }
 
+  // predict
   {
-    int i;
+    double guess, guessWeight, actual;
+    int i, numGuessesCorrect;
     for (i = 0; i < TEST_IMAGES_COUNT; i++) {
-      double const* prediction = genann_run(ann, test_data_input[i]);
-      int guess, actual;
+      double const *prediction = genann_run(ann, test_data_input[i]);
+
+      auto guessVec = std::vector<double>(prediction, prediction + OUTPUTS);
+      auto actualVec = std::vector<double>(test_data_output[i], test_data_output[i] + OUTPUTS);
+
+      auto maxGuessIterator = std::max_element(guessVec.begin(), guessVec.end());
+      guessWeight = *maxGuessIterator;
+      guess = std::distance(guessVec.begin(), maxGuessIterator);
+
+      auto maxActualIterator = std::max_element(actualVec.begin(), actualVec.end());
+      actual = std::distance(actualVec.begin(), maxActualIterator);
+
+      bool correct = (guess == actual);
+      if (correct) {
+        numGuessesCorrect++;
+      }
+
       if (i % 1000 == 0) {
-        printf("blah");
+        printf("%8d: %d (%f) -> %d (%d/%d correct)\n", i, (int)guess, guessWeight, (int)actual, 
+          (int)numGuessesCorrect, (int)TEST_IMAGES_COUNT);
       }
     }
+    putchar('\n');
+    numGuessesCorrect = 0;
   }
 
   goto train;
