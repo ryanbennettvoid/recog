@@ -10,7 +10,7 @@
 #include "labels_file.h"
 #include "util.h"
 
-static const int TRAINING_ITERATIONS = 10;
+static const int TRAINING_ITERATIONS = 100;
 
 static const std::string TRAINING_IMAGES_FILENAME = "train-images.idx3-ubyte";
 static const int TRAINING_IMAGES_MAGIC = 2051;
@@ -24,6 +24,10 @@ static const std::string TEST_IMAGES_FILENAME = "t10k-images.idx3-ubyte";
 static const int TEST_IMAGES_MAGIC = 2051;
 static const int TEST_IMAGES_COUNT = 10000;
 
+static const std::string TEST_LABELS_FILENAME = "t10k-labels.idx1-ubyte";
+static const int TEST_LABELS_MAGIC = 2049;
+static const int TEST_LABELS_COUNT = 10000;
+
 static const int THREADS = 8;
 
 int
@@ -33,6 +37,7 @@ main()
   double **training_data_input = nullptr; // training images
   double *training_data_output = nullptr; // training labels
   double **test_data_input = nullptr;     // test images
+  double *test_data_output = nullptr; // test labels
 
   // training images
   {
@@ -78,31 +83,52 @@ main()
     }
   }
 
+    // test labels
+  {
+    auto file = LabelsFile("data/" + TEST_LABELS_FILENAME);
+    if (!file.load()) {
+      panic("could not load labels file: " + file.getError());
+    }
+    assert(file.getMagic() == TEST_LABELS_MAGIC);
+    assert(file.labels.size() == TEST_LABELS_COUNT);
+    file.print();
+
+    int numLabels = file.labels.size();
+
+    test_data_output = (double*)malloc(numLabels * sizeof(double));
+    for (int i = 0; i < numLabels; i++) {
+      double value = file.labels[i];
+      test_data_output[i] = value > 0 ? (value / 10) : 0;
+    }
+  }
+
   assert(training_data_input);
   assert(training_data_output);
+  assert(test_data_output);
 
   // inputs, hidden layers, neurons per layer, outputs
   genann* ann = genann_init(28*28, 1, 28*28, 10);
 
   {
-    std::vector<std::thread*> threads;
+    std::vector<std::thread> threads;
     for (int t = 0; t < THREADS; t++) {
-      auto newThread = new std::thread([=](int t){
+      threads.push_back(std::thread([=](int t){
         int numImages = (TRAINING_IMAGES_COUNT / THREADS);
-        int imagesOffset = numImages * t;
+        int start = numImages * t;
+        int end = start + numImages;
         std::cout << "thread: " << t << '\n';
-        std::cout << "imagesOffset: " << imagesOffset << '\n' << '\n';
+        std::cout << "start: " << start << '\n' << '\n';
         int i, j;
         for (i = 0; i < TRAINING_ITERATIONS; ++i) {
-          for (j = imagesOffset; j < numImages; ++j) {
+          for (j = start; j < end; ++j) {
             genann_train(ann, training_data_input[j], &training_data_output[j], 0.1);
           }
         }
-      }, t);
-      threads.push_back(newThread);
+        std::cout << "thread " << t << " done\n\n";
+      }, t));
     }
-    for (auto thread : threads) {
-      thread->join();
+    for (auto& thread : threads) {
+      thread.join();
     }
   }
 
@@ -137,7 +163,7 @@ main()
     for (i = 0; i < TEST_IMAGES_COUNT; i++) {
       double const* prediction = genann_run(ann, test_data_input[i]);
       printf(
-        "Output for data point is: %f, %f\n", prediction[0], prediction[1]);
+        "Output for data point is: %f, %f --> %f\n", prediction[0], prediction[1], test_data_output[i]);
     }
   }
 
