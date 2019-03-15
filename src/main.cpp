@@ -2,6 +2,7 @@
 // ref: http://yann.lecun.com/exdb/mnist/
 
 #include <cassert>
+#include <thread>
 #include "math.h"
 #include "genann.h"
 
@@ -9,7 +10,7 @@
 #include "labels_file.h"
 #include "util.h"
 
-static const int TRAINING_ITERATIONS = 100;
+static const int TRAINING_ITERATIONS = 10;
 
 static const std::string TRAINING_IMAGES_FILENAME = "train-images.idx3-ubyte";
 static const int TRAINING_IMAGES_MAGIC = 2051;
@@ -23,12 +24,15 @@ static const std::string TEST_IMAGES_FILENAME = "t10k-images.idx3-ubyte";
 static const int TEST_IMAGES_MAGIC = 2051;
 static const int TEST_IMAGES_COUNT = 10000;
 
+static const int THREADS = 8;
+
 int
 main()
 {
 
-  double **training_data_input = nullptr, **training_data_output = nullptr,
-         **test_data_input = nullptr;
+  double **training_data_input = nullptr; // training images
+  double *training_data_output = nullptr; // training labels
+  double **test_data_input = nullptr;     // test images
 
   // training images
   {
@@ -65,17 +69,12 @@ main()
     assert(file.labels.size() == TRAINING_LABELS_COUNT);
     file.print();
 
-    int numRows = file.labels.size();
-    int numCols = 1;
+    int numLabels = file.labels.size();
 
-    training_data_output = (double**)malloc(numRows * sizeof(double*));
-    for (int r = 0; r < numRows; r++) {
-      double* row = (double*)malloc(numCols * sizeof(double));
-      for (int c = 0; c < numCols; c++) {
-        double value = file.labels[r];
-        row[c] = value > 0 ? (value / 10) : 0;
-      }
-      training_data_output[r] = row;
+    training_data_output = (double*)malloc(numLabels * sizeof(double));
+    for (int i = 0; i < numLabels; i++) {
+      double value = file.labels[i];
+      training_data_output[i] = value > 0 ? (value / 10) : 0;
     }
   }
 
@@ -86,11 +85,24 @@ main()
   genann* ann = genann_init(28*28, 1, 28*28, 10);
 
   {
-    int i, j;
-    for (i = 0; i < TRAINING_ITERATIONS; ++i) {
-      for (j = 0; j < TRAINING_IMAGES_COUNT; ++j) {
-        genann_train(ann, training_data_input[j], training_data_output[j], 0.1);
-      }
+    std::vector<std::thread*> threads;
+    for (int t = 0; t < THREADS; t++) {
+      auto newThread = new std::thread([=](int t){
+        int numImages = (TRAINING_IMAGES_COUNT / THREADS);
+        int imagesOffset = numImages * t;
+        std::cout << "thread: " << t << '\n';
+        std::cout << "imagesOffset: " << imagesOffset << '\n' << '\n';
+        int i, j;
+        for (i = 0; i < TRAINING_ITERATIONS; ++i) {
+          for (j = imagesOffset; j < numImages; ++j) {
+            genann_train(ann, training_data_input[j], &training_data_output[j], 0.1);
+          }
+        }
+      }, t);
+      threads.push_back(newThread);
+    }
+    for (auto thread : threads) {
+      thread->join();
     }
   }
 

@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <string>
+#include "math.h"
 
 void
 panic(std::string message)

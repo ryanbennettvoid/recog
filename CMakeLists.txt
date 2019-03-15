@@ -1,8 +1,6 @@
 
 cmake_minimum_required( VERSION 3.12 )
 
-set(CMAKE_BUILD_TYPE Debug)
-
 add_library( 
   genann STATIC
   ./vendor/genann/src/genann.c
@@ -26,9 +24,10 @@ add_executable(
   ./src/file.cpp
 )
 
+find_package( Threads )
 target_compile_options( recog PRIVATE -Wall -Wextra -Wpedantic -Werror -std=c++17 )
 target_compile_options( recog PRIVATE -std=c++17 )
-target_link_libraries( recog genann )
+target_link_libraries( recog ${CMAKE_THREAD_LIBS_INIT} genann )
 
 target_include_directories( 
   recog PUBLIC 
