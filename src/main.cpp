@@ -31,7 +31,7 @@ static const int TEST_LABELS_COUNT = 10000;
 static const int THREADS = 8;
 
 const static int INPUTS = 28 * 28;
-const static int HIDDEN_LAYERS = 1;
+const static int HIDDEN_LAYERS = 2;
 const static int NEURONS = INPUTS / 7;
 const static int OUTPUTS = 10;
 const static double LEARNING_RATE = 0.1;
@@ -218,7 +218,7 @@ train:
         numGuessesCorrect++;
       }
 
-      if (i % 1000 == 0) {
+      if (i % 500 == 0 || i == TEST_IMAGES_COUNT-1) {
         printf("%8d: %d (%f) -> %d (%d/%d correct)\n", i, (int)guess, guessWeight, (int)actual, 
           (int)numGuessesCorrect, (int)TEST_IMAGES_COUNT);
       }
